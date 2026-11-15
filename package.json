@@ -1,0 +1,10 @@
+{
+  "name": "dilek-agaci",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Dilek ağacı: dilek bırak, dilek çek, kurdele at",
+  "engines": { "node": ">=20" },
+  "dependencies": {
+    "@neondatabase/serverless": "^0.10.4"
+  }
+}
