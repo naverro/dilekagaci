@@ -1,0 +1,14 @@
+{
+  "name": "dilek-agaci",
+  "version": "2.0.0",
+  "private": true,
+  "description": "Dilek Ağacı: Supabase destekli, canlı güncellenen dilek ağacı",
+  "scripts": {
+    "build": "node scripts/build-config.js",
+    "dev": "node scripts/build-config.js && node scripts/dev-server.js",
+    "test": "node tests/ui-logic.test.mjs"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
