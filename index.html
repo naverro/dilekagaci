@@ -1,0 +1,436 @@
+<!DOCTYPE html><html lang="tr"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>Dilek Ağacı</title>
+<meta name="description" content="Dileğini yaz, ağacın dalına bir kurdele olarak as. Başkalarının dileklerini oku.">
+<meta name="theme-color" content="#f6f8f5">
+<meta property="og:title" content="Dilek Ağacı">
+<meta property="og:description" content="Dileğini yaz, ağacın dalına bir kurdele olarak as.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🌳%3C/text%3E%3C/svg%3E">
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&amp;family=Playfair+Display:ital,wght@0,600;0,700;1,400&amp;family=Caveat:wght@500;600;700&amp;family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&amp;display=swap" rel="stylesheet">
+<script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+            serif: ['"Playfair Display"', 'serif'],
+            newsreader: ['"Newsreader"', 'serif'],
+            handwriting: ['"Caveat"', 'cursive'],
+          },
+          colors: {
+            nature: {
+              50: '#f4f8f4',
+              100: '#e5efe5',
+              200: '#cce2cd',
+              500: '#2e6b37',
+              600: '#23562b',
+              700: '#1b4322',
+              800: '#15361b',
+              900: '#0e2412',
+            }
+          },
+          animation: {
+            'sway-slow': 'sway 4.2s ease-in-out infinite alternate',
+            'sway-fast': 'sway 2.8s ease-in-out infinite alternate',
+            'sway-mid': 'sway 3.5s ease-in-out infinite alternate-reverse',
+            'sway-wide': 'swayWide 4.8s ease-in-out infinite alternate',
+          },
+          keyframes: {
+            sway: {
+              '0%': { transform: 'rotate(-4deg) translateY(0px)' },
+              '100%': { transform: 'rotate(5deg) translateY(2px)' },
+            },
+            swayWide: {
+              '0%': { transform: 'rotate(-6deg) translateY(0px)' },
+              '100%': { transform: 'rotate(6deg) translateY(3px)' },
+            }
+          }
+        }
+      }
+    };
+  </script>
+<style>
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+    
+    body {
+      background: radial-gradient(circle at 50% 25%, #ffffff 0%, #f6f8f5 55%, #edf3eb 100%);
+    }
+
+    .ribbon {
+      transform-origin: top center;
+      cursor: pointer;
+      transition: filter 0.25s ease, transform 0.25s ease;
+    }
+    .ribbon:hover {
+      filter: brightness(1.18) drop-shadow(0 4px 10px rgba(0,0,0,0.32));
+    }
+
+    /* Paper texture for wish notes */
+    .kraft-paper {
+      background: radial-gradient(circle at 15% 15%, #fdfbf7 0%, #f7eedb 45%, #efe2c8 100%);
+      box-shadow: 0 25px 50px -12px rgba(28, 40, 25, 0.25), 0 0 0 1px rgba(180, 140, 90, 0.25);
+    }
+
+    /* Leaf wind particles */
+    .leaf-wind {
+      pointer-events: none;
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      z-index: 10;
+    }
+    .falling-leaf {
+      position: absolute;
+      top: -24px;
+      opacity: 0.55;
+      animation: fallDown linear infinite;
+    }
+    @keyframes fallDown {
+      0% {
+        transform: translate(0, 0) rotate(0deg);
+        opacity: 0;
+      }
+      12% { opacity: 0.65; }
+      88% { opacity: 0.65; }
+      100% {
+        transform: translate(90px, 92vh) rotate(380deg);
+        opacity: 0;
+      }
+    }
+  </style>
+
+<style>
+    /* --- işlevsellik için eklenenler (görsel kimliği değiştirmez) --- */
+    .ribbon:focus-visible { outline: 2px solid #23562b; outline-offset: 3px; }
+    .ribbon-slot.is-new { animation: ribbonIn 0.8s ease-out both; }
+    @keyframes ribbonIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: none; } }
+    #captchaBox { position: fixed; left: 50%; bottom: 12px; transform: translateX(-50%); z-index: 60; }
+    @media (prefers-reduced-motion: reduce) {
+      .ribbon, .falling-leaf, .ribbon-slot.is-new, .animate-ping, .animate-pulse, .animate-spin { animation: none !important; }
+      .leaf-wind { display: none; }
+    }
+  </style>
+</head>
+<body class="w-full min-h-screen text-stone-800 flex flex-col font-sans selection:bg-nature-600 selection:text-white overflow-x-hidden relative">
+<!-- Süzülen yapraklar (js/leaves.js üretir) -->
+<div class="leaf-wind" id="leafWind" aria-hidden="true"></div>
+<!-- Main Canvas / Tree Display Area -->
+<main class="flex-1 flex flex-col justify-between max-w-7xl mx-auto w-full px-3 sm:px-6 pt-2 pb-4 relative z-20">
+<!-- Tree Interactive Stage: Gövde gizli, dallar ve zengin taç yukarıdan görkemli yayılır -->
+<div class="relative w-full flex-1 min-h-[420px] sm:min-h-[500px] lg:min-h-[540px] flex items-start justify-center select-none overflow-hidden pt-1">
+<!-- Ambient Gentle Backlight -->
+<div class="absolute inset-0 pointer-events-none flex items-center justify-center opacity-60">
+<div class="w-[500px] sm:w-[720px] h-[450px] sm:h-[620px] rounded-full bg-gradient-to-b from-emerald-100/60 via-amber-50/40 to-transparent blur-3xl"></div>
+</div>
+<!-- Bilgi şeridi: yükleme hatası / boş ağaç -->
+<div class="hidden absolute top-3 left-1/2 -translate-x-1/2 z-30 max-w-[92%] flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/90 border border-stone-200 shadow-sm text-xs text-stone-600" id="treeNotice" role="status">
+<span id="treeNoticeText"></span>
+<button class="hidden font-semibold text-nature-600 underline hover:text-nature-700" id="treeNoticeRetry" type="button">Yeniden dene</button>
+</div>
+<!-- MASTER BOTANICAL CANOPY & HIGH BRANCH SYSTEM SVG
+           ViewBox is cropped specifically to the upper tree crown & spreading branches (Y: 50 to 620).
+           The thick lower trunk and roots are completely eliminated. -->
+<svg class="w-full h-auto max-h-[66vh] sm:max-h-[69vh] object-contain drop-shadow-sm transition-transform duration-300" id="treeCanvas" preserveAspectRatio="xMidYMid meet" viewBox="0 60 1000 580">
+<defs>
+<!-- Branch Wood Textures & Shading -->
+<linearGradient id="branchMainGrad" x1="0%" x2="0%" y1="0%" y2="100%">
+<stop offset="0%" stop-color="#4a301d"></stop>
+<stop offset="40%" stop-color="#5c3c24"></stop>
+<stop offset="85%" stop-color="#3c2415"></stop>
+<stop offset="100%" stop-color="#2a180e"></stop>
+</linearGradient>
+<linearGradient id="barkHighlight" x1="0%" x2="100%" y1="0%" y2="100%">
+<stop offset="0%" stop-color="#734d2f"></stop>
+<stop offset="100%" stop-color="#432815"></stop>
+</linearGradient>
+<!-- Canopy foliage gradients (Multilayered Lush Botanical Clouds) -->
+<radialGradient cx="50%" cy="40%" id="canopyBackDeep" r="50%">
+<stop offset="0%" stop-color="#24582c"></stop>
+<stop offset="65%" stop-color="#194120"></stop>
+<stop offset="100%" stop-color="#112d16"></stop>
+</radialGradient>
+<radialGradient cx="45%" cy="35%" id="canopyMidRich" r="50%">
+<stop offset="0%" stop-color="#3b7d46"></stop>
+<stop offset="70%" stop-color="#275c32"></stop>
+<stop offset="100%" stop-color="#1c4424"></stop>
+</radialGradient>
+<radialGradient cx="40%" cy="30%" id="canopyFrontSun" r="48%">
+<stop offset="0%" stop-color="#5fad69"></stop>
+<stop offset="55%" stop-color="#387a43"></stop>
+<stop offset="100%" stop-color="#23522c"></stop>
+</radialGradient>
+<radialGradient cx="45%" cy="25%" id="canopyWarmTip" r="45%">
+<stop offset="0%" stop-color="#80cb8c"></stop>
+<stop offset="60%" stop-color="#4b9657"></stop>
+<stop offset="100%" stop-color="#2d6836"></stop>
+</radialGradient>
+<!-- Ribbon Soft Shadow -->
+<filter height="140%" id="ribbonShadow" width="160%" x="-30%" y="-15%">
+<feDropShadow dx="0" dy="3.5" flood-opacity="0.28" stdDeviation="2.8"></feDropShadow>
+</filter>
+</defs>
+<!-- BACKGROUND CANOPY MASSES (Deep atmospheric layers) -->
+<g fill="url(#canopyBackDeep)" id="canopyDeepLayer" opacity="0.95">
+<ellipse cx="500" cy="180" rx="200" ry="120"></ellipse>
+<ellipse cx="320" cy="240" rx="160" ry="110"></ellipse>
+<ellipse cx="680" cy="240" rx="160" ry="110"></ellipse>
+<ellipse cx="190" cy="330" rx="135" ry="95"></ellipse>
+<ellipse cx="810" cy="330" rx="135" ry="95"></ellipse>
+<ellipse cx="270" cy="390" rx="120" ry="85"></ellipse>
+<ellipse cx="730" cy="390" rx="120" ry="85"></ellipse>
+<circle cx="410" cy="140" r="105"></circle>
+<circle cx="590" cy="140" r="105"></circle>
+</g>
+<!-- DETAILED FORKED BRANCH ARCHITECTURE (No bottom trunk - only upper split and spread) -->
+<g fill="none" id="branchArchitecture" stroke-linecap="round">
+<!-- Central junction emerging smoothly from bottom edge (Y: 600) into crown -->
+<path d="M480 640 C485 580 475 510 440 440 C410 380 340 330 260 310" stroke="url(#branchMainGrad)" stroke-width="32"></path>
+<path d="M520 640 C515 580 525 510 560 440 C590 380 660 330 740 310" stroke="url(#branchMainGrad)" stroke-width="32"></path>
+<path d="M495 560 C500 480 495 400 500 290" stroke="url(#branchMainGrad)" stroke-width="26"></path>
+<!-- Primary Left Splays -->
+<path d="M440 440 C370 420 300 440 210 470" stroke="url(#barkHighlight)" stroke-width="22"></path>
+<path d="M350 380 C290 330 210 320 140 340" stroke="url(#barkHighlight)" stroke-width="17"></path>
+<path d="M260 310 C210 260 160 250 90 270" stroke="url(#branchMainGrad)" stroke-width="13"></path>
+<path d="M300 435 C240 470 170 490 100 495" stroke="url(#branchMainGrad)" stroke-width="12"></path>
+<path d="M380 340 C330 280 270 240 200 220" stroke="url(#barkHighlight)" stroke-width="14"></path>
+<!-- Primary Right Splays -->
+<path d="M560 440 C630 420 700 440 790 470" stroke="url(#barkHighlight)" stroke-width="22"></path>
+<path d="M650 380 C710 330 790 320 860 340" stroke="url(#barkHighlight)" stroke-width="17"></path>
+<path d="M740 310 C790 260 840 250 910 270" stroke="url(#branchMainGrad)" stroke-width="13"></path>
+<path d="M700 435 C760 470 830 490 900 495" stroke="url(#branchMainGrad)" stroke-width="12"></path>
+<path d="M620 340 C670 280 730 240 800 220" stroke="url(#barkHighlight)" stroke-width="14"></path>
+<!-- Crown Higher Sub-branches & Twigs -->
+<path d="M500 370 C460 310 420 260 360 210" stroke="url(#barkHighlight)" stroke-width="15"></path>
+<path d="M500 370 C540 310 580 260 640 210" stroke="url(#barkHighlight)" stroke-width="15"></path>
+<path d="M500 290 C480 230 460 180 410 140" stroke="url(#branchMainGrad)" stroke-width="11"></path>
+<path d="M500 290 C520 230 540 180 590 140" stroke="url(#branchMainGrad)" stroke-width="11"></path>
+<path d="M500 240 C500 180 500 140 500 100" stroke="url(#barkHighlight)" stroke-width="9"></path>
+<path d="M430 220 C380 180 320 160 250 160" stroke="url(#branchMainGrad)" stroke-width="9"></path>
+<path d="M570 220 C620 180 680 160 750 160" stroke="url(#branchMainGrad)" stroke-width="9"></path>
+<!-- Fine Twigs for Hanging Ribbons -->
+<path d="M170 330 C130 305 90 310 60 325" stroke="#4a301d" stroke-width="6"></path>
+<path d="M830 330 C870 305 910 310 940 325" stroke="#4a301d" stroke-width="6"></path>
+<path d="M230 450 C180 470 140 480 90 485" stroke="#4a301d" stroke-width="6"></path>
+<path d="M770 450 C820 470 860 480 910 485" stroke="#4a301d" stroke-width="6"></path>
+</g>
+<!-- MID CANOPY RICH CLUSTERS -->
+<g fill="url(#canopyMidRich)" id="canopyMidLayer" opacity="0.94">
+<ellipse cx="440" cy="230" rx="145" ry="95"></ellipse>
+<ellipse cx="560" cy="230" rx="145" ry="95"></ellipse>
+<ellipse cx="350" cy="290" rx="130" ry="85"></ellipse>
+<ellipse cx="650" cy="290" rx="130" ry="85"></ellipse>
+<ellipse cx="230" cy="370" rx="115" ry="80"></ellipse>
+<ellipse cx="770" cy="370" rx="115" ry="80"></ellipse>
+<circle cx="500" cy="155" r="95"></circle>
+<circle cx="340" cy="180" r="90"></circle>
+<circle cx="660" cy="180" r="90"></circle>
+<ellipse cx="140" cy="350" rx="90" ry="65"></ellipse>
+<ellipse cx="860" cy="350" rx="90" ry="65"></ellipse>
+</g>
+<!-- FOREGROUND SUNLIT CRISP FOLIAGE & TEXTURED LEAF BUDS -->
+<g fill="url(#canopyFrontSun)" id="canopyFrontLayer">
+<ellipse cx="500" cy="220" rx="115" ry="80"></ellipse>
+<ellipse cx="390" cy="260" rx="100" ry="70"></ellipse>
+<ellipse cx="610" cy="260" rx="100" ry="70"></ellipse>
+<ellipse cx="290" cy="340" rx="95" ry="65"></ellipse>
+<ellipse cx="710" cy="340" rx="95" ry="65"></ellipse>
+<ellipse cx="180" cy="410" rx="80" ry="55"></ellipse>
+<ellipse cx="820" cy="410" rx="80" ry="55"></ellipse>
+<circle cx="460" cy="130" fill="url(#canopyWarmTip)" r="75"></circle>
+<circle cx="540" cy="130" fill="url(#canopyWarmTip)" r="75"></circle>
+<circle cx="380" cy="150" fill="url(#canopyWarmTip)" r="65"></circle>
+<circle cx="620" cy="150" fill="url(#canopyWarmTip)" r="65"></circle>
+<ellipse cx="490" cy="295" fill="url(#canopyWarmTip)" rx="80" ry="55"></ellipse>
+</g>
+<!-- Fine Botanical Leaf Sparks & Highlights (Depth & organic vibration) -->
+<g fill="#9ae2a4" opacity="0.75">
+<circle cx="210" cy="200" r="6"></circle>
+<circle cx="270" cy="150" r="7"></circle>
+<circle cx="350" cy="110" r="7.5"></circle>
+<circle cx="430" cy="75" r="8"></circle>
+<circle cx="500" cy="65" r="9"></circle>
+<circle cx="570" cy="75" r="8"></circle>
+<circle cx="650" cy="110" r="7.5"></circle>
+<circle cx="730" cy="150" r="7"></circle>
+<circle cx="790" cy="200" r="6"></circle>
+<circle cx="870" cy="275" r="6.5"></circle>
+<circle cx="130" cy="275" r="6.5"></circle>
+<circle cx="80" cy="360" r="6"></circle>
+<circle cx="920" cy="360" r="6"></circle>
+<circle cx="160" cy="460" r="6"></circle>
+<circle cx="840" cy="460" r="6"></circle>
+<circle cx="300" cy="430" r="6.5"></circle>
+<circle cx="700" cy="430" r="6.5"></circle>
+</g>
+<!-- ======================================================== -->
+<!-- INTERACTIVE HANGING WISH RIBBONS (BOL MİKTARDA: 22 ADET) -->
+<!-- Spread naturally across branches with varied gentle sway animations -->
+<!-- ======================================================== -->
+<g id="ribbonsContainer">
+<g id="ribbonLayer"></g>
+</g>
+</svg>
+</div>
+<!-- MINIMAL, MODERN GLASS WISH INPUT DOCK (Floating Bottom Card) -->
+<section class="w-full max-w-2xl mx-auto z-30 mt-1">
+<div class="bg-white/80 backdrop-blur-md rounded-2xl p-3.5 sm:p-4 border border-stone-200/80 shadow-[0_8px_30px_rgb(0,0,0,0.04)] transition-all">
+<!-- Ultra Minimal Color Dots Palette Selector (No text categories) -->
+<div class="flex items-center justify-between pb-2.5 mb-2.5 border-b border-stone-100">
+<span class="text-[11px] font-medium text-stone-500 uppercase tracking-wider">Kurdele Rengi</span>
+<div class="flex items-center gap-2 sm:gap-2.5" id="colorPickerList">
+<!-- 1: Emerald -->
+<button aria-label="Zümrüt Yeşili" class="color-dot relative w-6 h-6 rounded-full bg-[#10b981] shadow-sm transition-transform hover:scale-110 active:scale-95 flex items-center justify-center ring-2 ring-[#10b981] ring-offset-2 scale-110" data-color="#10b981" type="button">
+<svg class="check-icon w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24">
+<path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+</button>
+<!-- 2: Sapphire -->
+<button aria-label="Safir Mavi" class="color-dot relative w-6 h-6 rounded-full bg-[#0ea5e9] shadow-sm transition-transform hover:scale-110 active:scale-95 flex items-center justify-center" data-color="#0ea5e9" type="button">
+<svg class="check-icon hidden w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24">
+<path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+</button>
+<!-- 3: Coral Red -->
+<button aria-label="Mercan Kırmızı" class="color-dot relative w-6 h-6 rounded-full bg-[#ef4444] shadow-sm transition-transform hover:scale-110 active:scale-95 flex items-center justify-center" data-color="#ef4444" type="button">
+<svg class="check-icon hidden w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24">
+<path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+</button>
+<!-- 4: Violet Purple -->
+<button aria-label="Mor" class="color-dot relative w-6 h-6 rounded-full bg-[#8b5cf6] shadow-sm transition-transform hover:scale-110 active:scale-95 flex items-center justify-center" data-color="#8b5cf6" type="button">
+<svg class="check-icon hidden w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24">
+<path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+</button>
+<!-- 5: Warm Gold -->
+<button aria-label="Altın Sarısı" class="color-dot relative w-6 h-6 rounded-full bg-[#f59e0b] shadow-sm transition-transform hover:scale-110 active:scale-95 flex items-center justify-center" data-color="#f59e0b" type="button">
+<svg class="check-icon hidden w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24">
+<path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+</button>
+<!-- 6: Rose Pink -->
+<button aria-label="Gül Pembesi" class="color-dot relative w-6 h-6 rounded-full bg-[#ec4899] shadow-sm transition-transform hover:scale-110 active:scale-95 flex items-center justify-center" data-color="#ec4899" type="button">
+<svg class="check-icon hidden w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24">
+<path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+</button>
+<!-- 7: Pearl White -->
+<button aria-label="İnci Beyazı" class="color-dot relative w-6 h-6 rounded-full bg-white border border-stone-300 shadow-sm transition-transform hover:scale-110 active:scale-95 flex items-center justify-center" data-color="#f8fafc" type="button">
+<svg class="check-icon hidden w-3.5 h-3.5 text-stone-700" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24">
+<path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+</button>
+</div>
+</div>
+<!-- Wish Form: Name/Nickname + Wish Text + Submit -->
+<form class="space-y-2.5" id="wishForm">
+<div class="grid grid-cols-1 sm:grid-cols-12 gap-2">
+<!-- Author / Nickname Input -->
+<div class="sm:col-span-4">
+<input class="w-full bg-stone-50/90 border border-stone-200 rounded-xl px-3 py-2 text-xs sm:text-sm text-stone-800 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-nature-500 focus:bg-white transition-all" id="authorInput" maxlength="32" placeholder="Adınız veya rumuzunuz" type="text">
+</div>
+<!-- Wish Text Input -->
+<div class="sm:col-span-8 relative">
+<input class="w-full bg-stone-50/90 border border-stone-200 rounded-xl pl-3 pr-14 py-2 text-xs sm:text-sm text-stone-800 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-nature-500 focus:bg-white transition-all" id="wishInput" maxlength="200" placeholder="Dileğinizi buraya yazın..." required="" type="text">
+<span class="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-stone-400 font-mono" id="charCount">0/200</span>
+</div>
+</div>
+<!-- Hang Button -->
+<div class="flex items-center justify-end">
+<button class="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-nature-600 hover:bg-nature-700 active:scale-[0.98] text-white px-5 py-2 rounded-xl font-medium text-xs sm:text-sm shadow-sm transition-all whitespace-nowrap cursor-pointer" id="hangButton" type="submit">
+<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+<path d="M7 7h10M7 11h10M7 15h6M5 21V5a2 2 0 012-2h10a2 2 0 012 2v16l-7-4-7 4z" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+<span>Dileği Ağaca As</span>
+</button>
+</div>
+</form>
+<p class="hidden" id="formStatus" role="alert"></p>
+<!-- User Hung Wish Quick Notification -->
+<div class="hidden mt-2 pt-2 border-t border-stone-100 flex items-center justify-between text-xs" id="myWishAlert">
+<div class="flex items-center gap-1.5 text-nature-600">
+<span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+<span id="myWishAlertText">Dileğiniz dala asıldı</span>
+</div>
+<button class="text-xs font-semibold text-stone-600 underline hover:text-nature-600" id="openMyWishBtn" type="button">
+            Dileğinizi Görüntüleyin
+          </button>
+</div>
+</div>
+<!-- Hint Info Text -->
+<p class="text-center text-[11px] sm:text-xs text-stone-500 mt-2 flex items-center justify-center gap-1.5">
+<svg class="w-3.5 h-3.5 text-nature-600 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+<path d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+<span>Dallardaki kurdelelere tıklayarak yazılan dilekleri oku</span>
+</p>
+<!-- Minimal Live Ribbon Counter (Placed cleanly at the very bottom center) -->
+<div class="mt-2.5 flex items-center justify-center">
+<div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-stone-100/80 border border-stone-200/60 text-stone-600 text-xs">
+<span class="relative flex h-1.5 w-1.5">
+<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+<span class="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
+</span>
+<span class="text-[11px] text-stone-500">Bağlanan Kurdele:</span>
+<span class="font-semibold text-stone-800 font-mono tracking-tight text-xs" id="counterDisplay">…</span>
+</div>
+</div>
+</section>
+</main>
+<!-- ======================================================== -->
+<!-- NOSTALGIC KRAFT / PARCHMENT WISH NOTE MODAL -->
+<!-- ======================================================== -->
+<div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-900/40 backdrop-blur-sm transition-opacity duration-300 opacity-0 pointer-events-none" id="wishModal" role="dialog" aria-modal="true" aria-labelledby="modalTitle" inert>
+<div class="kraft-paper relative w-full max-w-md rounded-2xl p-6 sm:p-8 transform transition-transform duration-300 border border-[#d6be96]/60 scale-95" id="wishModalCard">
+<!-- Top Ribbon Grommet Clip -->
+<div class="absolute -top-3.5 left-1/2 -translate-x-1/2 flex flex-col items-center">
+<div class="w-5 h-9 rounded-t shadow-sm" id="modalRibbonColor" style="background-color: #10b981;"></div>
+<div class="w-3.5 h-3.5 rounded-full bg-amber-200 border-2 border-amber-800 shadow-inner -mt-1.5"></div>
+</div>
+<!-- Close button -->
+<button aria-label="Kapat" class="absolute top-3.5 right-3.5 text-stone-500 hover:text-stone-800 p-1 rounded-full hover:bg-black/5 transition-colors" data-close-modal>
+<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+<path d="M6 18L18 6M6 6l12 12" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+</button>
+<!-- Note Header -->
+<div class="mt-2 flex items-center justify-between border-b border-stone-400/30 pb-2">
+<span class="text-[11px] font-medium tracking-wide text-stone-500" id="modalTitle">Dilek Ağacından</span>
+<span class="text-[11px] text-stone-400">Kalpten Bir Niyet</span>
+</div>
+<!-- Handwriting Body Text -->
+<div class="my-6 min-h-[90px] flex items-center">
+<p class="font-handwriting text-2xl sm:text-3xl text-stone-800 leading-snug tracking-wide" id="modalWishText"></p>
+</div>
+<!-- Author Signature & Footer -->
+<div class="flex items-center justify-between border-t border-stone-400/30 pt-3 text-xs text-stone-600">
+<div>
+<span class="text-[10px] text-stone-400 block">Yazan</span>
+<span class="font-serif italic font-bold text-stone-800 text-sm" id="modalAuthor">Anonim</span>
+<span class="block text-[10px] text-stone-400 mt-0.5 font-newsreader italic" id="modalDate"></span>
+</div>
+<div class="flex items-center gap-2">
+<button class="flex items-center gap-1 px-2.5 py-1 rounded-full bg-stone-200/70 hover:bg-rose-100 text-stone-700 transition-colors" id="likeBtn" aria-pressed="false" type="button">
+<span class="heart-icon">🤍</span>
+<span class="like-count font-mono text-xs">0</span>
+</button>
+<button class="px-3 py-1 rounded-full bg-nature-600 text-white font-medium text-xs hover:bg-nature-700 transition-colors" data-close-modal>
+            Kapat
+          </button>
+</div>
+</div>
+</div>
+</div>
+<div id="captchaBox"></div>
+<noscript><p style="text-align:center;padding:1rem;font-family:sans-serif">Dilek Ağacı için JavaScript gerekli.</p></noscript>
+<script src="/config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script type="module" src="/js/main.js"></script>
+</body></html>
