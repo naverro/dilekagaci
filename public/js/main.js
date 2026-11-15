@@ -189,3 +189,5 @@ if (!isConfigured) {
   api.fetchMyLikes().then((s) => s.forEach((id) => likedIds.add(id))).catch(() => {});
   refreshMine();
 }
+
+window.__DILEK_BOOT__ = true; // index.html teşhis uyarısı için

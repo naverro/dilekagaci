@@ -330,7 +330,7 @@
 </div>
 </div>
 <!-- Wish Form: Name/Nickname + Wish Text + Submit -->
-<form class="space-y-2.5" id="wishForm">
+<form class="space-y-2.5" id="wishForm" onsubmit="return false">
 <div class="grid grid-cols-1 sm:grid-cols-12 gap-2">
 <!-- Author / Nickname Input -->
 <div class="sm:col-span-4">
@@ -430,6 +430,18 @@
 </div>
 <div id="captchaBox"></div>
 <noscript><p style="text-align:center;padding:1rem;font-family:sans-serif">Dilek Ağacı için JavaScript gerekli.</p></noscript>
+<script>
+  // Teşhis: betikler çalışmazsa sessiz kalmak yerine ekranda uyarı göster.
+  window.addEventListener("error", function (e) { window.__DILEK_ERR__ = (e && e.message) || "bilinmeyen hata"; });
+  setTimeout(function () {
+    if (window.__DILEK_BOOT__) return;
+    var b = document.createElement("div");
+    b.setAttribute("role", "alert");
+    b.style.cssText = "position:fixed;left:8px;right:8px;bottom:8px;z-index:100;background:#7f1d1d;color:#fff;padding:10px 14px;border-radius:12px;font:13px/1.45 sans-serif";
+    b.textContent = "Site betikleri çalışmadı. " + (window.__DILEK_ERR__ ? "Hata: " + window.__DILEK_ERR__ : "/js/main.js dosyasına ulaşılamıyor olabilir (GitHub'da public/js klasörü var mı?).");
+    document.body.appendChild(b);
+  }, 4000);
+</script>
 <script src="/config.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <script type="module" src="/js/main.js"></script>
